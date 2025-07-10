@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Turing Test - Tester</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .chat-box { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; background: #f8f8f8; }
+    .chat-section { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <h2>Turing Test - Evaluator View</h2>
+  <p>Room: <b id="roomIdDisplay"></b></p>
+
+  <div class="chat-section">
+    <h3>Chat A</h3>
+    <div id="chatA" class="chat-box"></div>
+    <input type="text" id="inputA" placeholder="Type to A" />
+    <button onclick="sendMessage('A')">Send</button>
+  </div>
+
+  <div class="chat-section">
+    <h3>Chat B</h3>
+    <div id="chatB" class="chat-box"></div>
+    <input type="text" id="inputB" placeholder="Type to B" />
+    <button onclick="sendMessage('B')">Send</button>
+  </div>
+
+  <hr>
+  <h3>Submit Your Guess</h3>
+  <select id="guess">
+    <option value="A">Chat A is Human</option>
+    <option value="B">Chat B is Human</option>
+  </select>
+  <button onclick="submitGuess()">Submit Guess</button>
+  <p id="result"></p>
+
+  <script>
+    const roomId = window.location.pathname.split("/")[1];
+    document.getElementById("roomIdDisplay").innerText = roomId;
+    const socket = io();
+    socket.emit("join", { room: roomId });
+
+    function appendMessage(id, sender, msg) {
+      const el = document.getElementById("chat" + id);
+      el.innerHTML += `<b>${sender}:</b> ${msg}<br>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function sendMessage(toWhom) {
+      const input = document.getElementById("input" + toWhom);
+      const msg = input.value;
+      if (!msg.trim()) return;
+      appendMessage(toWhom, "You", msg);
+      socket.emit("message_to", { to: toWhom, message: msg, room: roomId });
+      input.value = "";
+    }
+
+    socket.on("reply_from", (data) => {
+      appendMessage(data.to, "Reply", data.reply);
+    });
+
+    function submitGuess() {
+      const guess = document.getElementById("guess").value;
+      fetch("/submit_guess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room_id: roomId, guess: guess })
+      }).then(res => res.json()).then(data => {
+        document.getElementById("result").innerText = data.result;
+      });
+    }
+  </script>
+</body>
+</html>
