@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Human Agent View</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .message { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Human Agent Panel</h2>
+  <p>Room: <b id="roomIdDisplay"></b></p>
+  <div id="incoming"></div>
+  <input type="text" id="replyBox" placeholder="Type your reply..." />
+  <button onclick="sendReply()">Send</button>
+
+  <script>
+    const roomId = window.location.pathname.split("/")[1];
+    document.getElementById("roomIdDisplay").innerText = roomId;
+    const socket = io();
+    let currentFrom = null;
+
+    socket.emit("join", { room: roomId });
+
+    socket.on("message_to_agent", (data) => {
+      currentFrom = data.from;
+      const incoming = document.getElementById("incoming");
+      incoming.innerHTML += `<div class='message'><b>Message to Chat ${data.from}:</b> ${data.message}</div>`;
+    });
+
+    function sendReply() {
+      const msg = document.getElementById("replyBox").value;
+      if (!msg.trim() || !currentFrom) return;
+      socket.emit("agent_reply", { room: roomId, reply: msg, to: currentFrom });
+      document.getElementById("replyBox").value = "";
+    }
+  </script>
+</body>
+</html>
